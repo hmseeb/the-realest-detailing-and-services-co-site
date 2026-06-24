@@ -6,7 +6,7 @@
   'use strict';
 
   // ── Navbar scroll effect ────────────────────────────
-  const navbar = document.getElementById('navbar');
+  var navbar = document.getElementById('navbar');
   function handleScroll() {
     if (window.scrollY > 50) {
       navbar.classList.add('scrolled');
@@ -18,8 +18,8 @@
   handleScroll();
 
   // ── Mobile nav toggle ───────────────────────────────
-  const navToggle = document.getElementById('navToggle');
-  const navLinks = document.getElementById('navLinks');
+  var navToggle = document.getElementById('navToggle');
+  var navLinks = document.getElementById('navLinks');
 
   navToggle.addEventListener('click', function () {
     navToggle.classList.toggle('open');
@@ -27,7 +27,6 @@
     document.body.style.overflow = navLinks.classList.contains('open') ? 'hidden' : '';
   });
 
-  // Close mobile nav when a link is clicked
   navLinks.querySelectorAll('a').forEach(function (link) {
     link.addEventListener('click', function () {
       navToggle.classList.remove('open');
@@ -37,13 +36,13 @@
   });
 
   // ── Smooth active nav link highlighting ────────────
-  const sections = document.querySelectorAll('section[id]');
-  const navItems = document.querySelectorAll('.nav-links a[href^="#"]');
+  var sections = document.querySelectorAll('section[id]');
+  var navItems = document.querySelectorAll('.nav-links a[href^="#"]');
 
   function updateActiveNav() {
-    let current = '';
+    var current = '';
     sections.forEach(function (section) {
-      const sTop = section.offsetTop - 100;
+      var sTop = section.offsetTop - 120;
       if (window.scrollY >= sTop) {
         current = section.getAttribute('id');
       }
@@ -51,58 +50,118 @@
     navItems.forEach(function (a) {
       a.style.color = '';
       if (a.getAttribute('href') === '#' + current) {
-        a.style.color = 'var(--gold)';
+        a.style.color = 'var(--red)';
       }
     });
   }
   window.addEventListener('scroll', updateActiveNav, { passive: true });
   updateActiveNav();
 
-  // ── Service cards entrance animation ───────────────
+  // ── Intersection observer entrance animations ───────
   if ('IntersectionObserver' in window) {
-    const cards = document.querySelectorAll('.service-card, .contact-card, .about-badge');
-    cards.forEach(function (card) {
-      card.style.opacity = '0';
-      card.style.transform = 'translateY(24px)';
-      card.style.transition = 'opacity 0.55s ease, transform 0.55s ease';
+    var animTargets = document.querySelectorAll(
+      '.service-card, .why-card, .review-card, .gallery-item, .faq-item, .quote-info-card, .about-badge'
+    );
+    animTargets.forEach(function (el) {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
     });
 
-    const observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry, i) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
         if (entry.isIntersecting) {
-          setTimeout(function () {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
-          }, 80);
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
           observer.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.15 });
+    }, { threshold: 0.12 });
 
-    cards.forEach(function (card) { observer.observe(card); });
-
-    // Stagger service cards
-    const serviceCards = document.querySelectorAll('.service-card');
-    serviceCards.forEach(function (card, i) {
-      card.style.transitionDelay = (i * 80) + 'ms';
+    // Stagger cards within their parent grid
+    ['service-card', 'why-card', 'review-card', 'gallery-item'].forEach(function (cls) {
+      document.querySelectorAll('.' + cls).forEach(function (card, i) {
+        card.style.transitionDelay = (i % 3) * 80 + 'ms';
+      });
     });
+
+    animTargets.forEach(function (el) { observer.observe(el); });
   }
 
-  // ── Contact form handling ───────────────────────────
-  const form = document.getElementById('contactForm');
-  const successMsg = document.getElementById('formSuccess');
+  // ── Gallery Lightbox ────────────────────────────────
+  var lightbox = document.getElementById('lightbox');
+  var lightboxImg = document.getElementById('lightboxImg');
+  var lightboxCaption = document.getElementById('lightboxCaption');
+  var lightboxClose = document.getElementById('lightboxClose');
 
-  if (form) {
-    form.addEventListener('submit', function (e) {
+  document.querySelectorAll('.gallery-item[data-lightbox="true"]').forEach(function (item) {
+    item.addEventListener('click', function () {
+      var src = item.getAttribute('data-src');
+      var caption = item.getAttribute('data-caption') || '';
+      lightboxImg.setAttribute('src', src);
+      lightboxImg.setAttribute('alt', caption);
+      lightboxCaption.textContent = caption;
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  function closeLightbox() {
+    lightbox.classList.remove('active');
+    document.body.style.overflow = '';
+    setTimeout(function () {
+      lightboxImg.setAttribute('src', '');
+    }, 300);
+  }
+
+  if (lightboxClose) {
+    lightboxClose.addEventListener('click', closeLightbox);
+  }
+  if (lightbox) {
+    lightbox.addEventListener('click', function (e) {
+      if (e.target === lightbox) closeLightbox();
+    });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && lightbox.classList.contains('active')) {
+      closeLightbox();
+    }
+  });
+
+  // ── FAQ Accordion ───────────────────────────────────
+  document.querySelectorAll('.faq-question').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var isOpen = btn.getAttribute('aria-expanded') === 'true';
+      var answer = btn.nextElementSibling;
+
+      // Close all
+      document.querySelectorAll('.faq-question').forEach(function (b) {
+        b.setAttribute('aria-expanded', 'false');
+        b.nextElementSibling.classList.remove('open');
+      });
+
+      // Open clicked if it was closed
+      if (!isOpen) {
+        btn.setAttribute('aria-expanded', 'true');
+        answer.classList.add('open');
+      }
+    });
+  });
+
+  // ── Quote Form handling ─────────────────────────────
+  var quoteForm = document.getElementById('quoteForm');
+  var quoteSuccess = document.getElementById('quoteSuccess');
+
+  if (quoteForm) {
+    quoteForm.addEventListener('submit', function (e) {
       e.preventDefault();
 
-      // Basic validation
-      const required = form.querySelectorAll('[required]');
-      let valid = true;
+      var required = quoteForm.querySelectorAll('[required]');
+      var valid = true;
       required.forEach(function (field) {
         if (!field.value.trim()) {
           valid = false;
-          field.style.borderColor = '#E53E3E';
+          field.style.borderColor = '#D72626';
           field.addEventListener('input', function () {
             field.style.borderColor = '';
           }, { once: true });
@@ -111,28 +170,43 @@
 
       if (!valid) return;
 
-      const submitBtn = form.querySelector('button[type="submit"]');
+      var submitBtn = quoteForm.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
       submitBtn.textContent = 'Sending…';
 
-      // Simulate form submission
       setTimeout(function () {
-        form.reset();
+        quoteForm.reset();
+        document.getElementById('fileLabel').textContent = 'Click to upload photos (JPG, PNG)';
         submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Send Message <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
-        successMsg.style.display = 'flex';
-        setTimeout(function () {
-          successMsg.style.display = 'none';
-        }, 6000);
+        submitBtn.innerHTML = 'Get My Free Quote <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+        if (quoteSuccess) {
+          quoteSuccess.style.display = 'flex';
+          setTimeout(function () {
+            quoteSuccess.style.display = 'none';
+          }, 7000);
+        }
       }, 1200);
     });
   }
 
+  // ── File upload label update ─────────────────────────
+  var fileInput = document.getElementById('qPhotos');
+  var fileLabel = document.getElementById('fileLabel');
+  if (fileInput && fileLabel) {
+    fileInput.addEventListener('change', function () {
+      if (fileInput.files && fileInput.files.length > 0) {
+        fileLabel.textContent = fileInput.files.length + ' photo(s) selected';
+      } else {
+        fileLabel.textContent = 'Click to upload photos (JPG, PNG)';
+      }
+    });
+  }
+
   // ── Phone number formatting ─────────────────────────
-  const phoneInput = document.getElementById('phone');
+  var phoneInput = document.getElementById('qPhone');
   if (phoneInput) {
     phoneInput.addEventListener('input', function () {
-      let val = phoneInput.value.replace(/\D/g, '').substring(0, 10);
+      var val = phoneInput.value.replace(/\D/g, '').substring(0, 10);
       if (val.length >= 7) {
         val = '(' + val.substring(0,3) + ') ' + val.substring(3,6) + '-' + val.substring(6);
       } else if (val.length >= 4) {
@@ -143,5 +217,20 @@
       phoneInput.value = val;
     });
   }
+
+  // ── Smooth scroll for anchor buttons ────────────────
+  document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+    anchor.addEventListener('click', function (e) {
+      var href = anchor.getAttribute('href');
+      if (href === '#') return;
+      var target = document.querySelector(href);
+      if (target) {
+        e.preventDefault();
+        var offset = 70;
+        var top = target.getBoundingClientRect().top + window.scrollY - offset;
+        window.scrollTo({ top: top, behavior: 'smooth' });
+      }
+    });
+  });
 
 })();
